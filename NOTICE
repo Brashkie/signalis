@@ -1,0 +1,153 @@
+@brashkie/signalis
+Copyright 2026 Brashkie / Hepein Oficial
+
+This product includes software developed by Brashkie (Hepein Oficial)
+(https://github.com/Brashkie).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+---
+
+THIRD-PARTY ATTRIBUTIONS
+
+This software includes the following third-party components. Each component is
+distributed under its own license terms.
+
+================================================================================
+RUNTIME DEPENDENCIES
+================================================================================
+
+@brashkie/signalis-core
+  Project:  https://www.npmjs.com/package/@brashkie/signalis-core
+  Author:   Brashkie / Hepein Oficial
+  License:  Apache-2.0
+
+  Provides the underlying cryptographic primitives (Curve25519, Ed25519,
+  XEd25519, HKDF, HMAC-SHA256, AES-256-GCM, SHA-256, secure random) via NAPI
+  bindings to a Rust native module.
+
+================================================================================
+TRANSITIVE DEPENDENCIES (via @brashkie/signalis-core)
+================================================================================
+
+curve25519-dalek
+  Project:  https://github.com/dalek-cryptography/curve25519-dalek
+  License:  BSD-3-Clause
+
+  Pure-Rust implementation of group operations on Ristretto and Curve25519.
+
+ed25519-dalek
+  Project:  https://github.com/dalek-cryptography/ed25519-dalek
+  License:  BSD-3-Clause
+
+  Fast and efficient Rust implementation of Ed25519 key generation, signing,
+  and verification.
+
+x25519-dalek
+  Project:  https://github.com/dalek-cryptography/x25519-dalek
+  License:  BSD-3-Clause
+
+  Pure-Rust implementation of x25519 elliptic-curve Diffie-Hellman.
+
+RustCrypto (aes-gcm, hkdf, hmac, sha2)
+  Project:  https://github.com/RustCrypto
+  License:  Apache-2.0 OR MIT
+
+  Pure-Rust cryptographic algorithms used for AES-256-GCM (symmetric encryption
+  + authentication), HKDF (key derivation), HMAC-SHA256, and SHA-256 hashing.
+
+getrandom / rand_core
+  Project:  https://github.com/rust-random/getrandom
+  License:  Apache-2.0 OR MIT
+
+  Provides cryptographically secure random number generation via OS facilities.
+
+napi-rs
+  Project:  https://github.com/napi-rs/napi-rs
+  License:  MIT
+
+  Framework for building pre-compiled Node.js addons in Rust via N-API.
+
+zeroize
+  Project:  https://github.com/RustCrypto/utils/tree/master/zeroize
+  License:  Apache-2.0 OR MIT
+
+  Securely zeroes memory holding private keys when they go out of scope.
+
+================================================================================
+BUILD-TIME / DEVELOPMENT DEPENDENCIES
+================================================================================
+
+TypeScript
+  Project:  https://www.typescriptlang.org
+  License:  Apache-2.0
+
+tsup
+  Project:  https://tsup.egoist.dev
+  License:  MIT
+
+  Bundler powered by esbuild for TypeScript dual ESM/CJS packages.
+
+Vitest
+  Project:  https://vitest.dev
+  License:  MIT
+
+  Test runner used for the project's test suite.
+
+ESLint
+  Project:  https://eslint.org
+  License:  MIT
+
+@typescript-eslint
+  Project:  https://typescript-eslint.io
+  License:  MIT
+
+Prettier
+  Project:  https://prettier.io
+  License:  MIT
+
+================================================================================
+PROTOCOL SPECIFICATIONS
+================================================================================
+
+This software implements protocols specified by:
+
+  * Signal Foundation - https://signal.org/
+    - X3DH: https://signal.org/docs/specifications/x3dh/
+    - Double Ratchet: https://signal.org/docs/specifications/doubleratchet/
+    - XEdDSA / XEd25519: https://signal.org/docs/specifications/xeddsa/
+
+  * IETF RFCs:
+    - RFC 7748 - Curve25519
+    - RFC 8032 - Ed25519 (EdDSA)
+    - RFC 5869 - HKDF
+    - RFC 2104 - HMAC
+
+  * NIST:
+    - SP 800-38D - AES-GCM
+    - FIPS 180-4 - SHA-256
+
+These specifications are not themselves dependencies of this software; they are
+listed for attribution and reference purposes.
+
+================================================================================
+TRADEMARK NOTICE
+================================================================================
+
+"Signal" is a trademark of Signal Messenger LLC. This project is an independent
+implementation of the publicly documented Signal Protocol and is not affiliated
+with, endorsed by, or sponsored by Signal Messenger LLC.
+
+"WhatsApp" is a trademark of Meta Platforms, Inc. This project is not affiliated
+with, endorsed by, or sponsored by Meta Platforms, Inc.
+
+All other trademarks are the property of their respective owners.
+
+================================================================================
+
+For the full text of the Apache License, Version 2.0, see the LICENSE file
+distributed with this software.

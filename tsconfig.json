@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    // ─── Target / Module ─────────────────────────────────────────────
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+
+    // ─── Paths ───────────────────────────────────────────────────────
+    "outDir": "./dist",
+    "rootDir": "./src",
+
+    // ─── Type Safety (strict mode + extras) ──────────────────────────
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": false,
+    "useUnknownInCatchVariables": true,
+
+    // ─── Module Interop ──────────────────────────────────────────────
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "resolveJsonModule": true,
+
+    // ─── Declarations / Maps ─────────────────────────────────────────
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // ─── Class Fields (modern semantics) ─────────────────────────────
+    "useDefineForClassFields": true,
+
+    // ─── Performance ─────────────────────────────────────────────────
+    "skipLibCheck": true,
+
+    // ─── Output ──────────────────────────────────────────────────────
+    "removeComments": false,
+    "preserveConstEnums": true,
+
+    // ─── TypeScript 6.0 deprecation handling ────────────────────────
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "__tests__", "coverage"]
+}

@@ -1,0 +1,58 @@
+# ─── Source code (compiled to dist/) ──────────────────────────────────────
+src/
+__tests__/
+
+# ─── Build artifacts ──────────────────────────────────────────────────────
+*.tsbuildinfo
+coverage/
+.nyc_output/
+
+# ─── Dev configs (not needed by consumers) ────────────────────────────────
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.eslintrc*
+.eslint.config.*
+.prettierrc*
+prettier.config.*
+
+# ─── CI / GitHub ──────────────────────────────────────────────────────────
+.github/
+.gitignore
+.gitattributes
+
+# ─── Dev docs (only README.md ships to npm) ───────────────────────────────
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+ROADMAP.md
+API.md
+EXAMPLES.md
+
+# ─── Dependencies ─────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ─── IDE ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ─── OS ───────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Secrets ──────────────────────────────────────────────────────────────
+.env
+.env.*
+.npmrc
+
+# ─── Temp ─────────────────────────────────────────────────────────────────
+tmp/
+*.tmp

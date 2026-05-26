@@ -1,0 +1,51 @@
+# Automatically normalize line endings for all text-based files
+* text=auto eol=lf
+
+# ─── Source code (LF always) ──────────────────────────────────────────────
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.markdown text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# ─── Config files ─────────────────────────────────────────────────────────
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.npmignore text eol=lf
+.editorconfig text eol=lf
+.eslintrc* text eol=lf
+.prettierrc* text eol=lf
+tsconfig.json text eol=lf
+package.json text eol=lf
+
+# ─── Windows scripts (must be CRLF) ───────────────────────────────────────
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# ─── Binary (no diff) ─────────────────────────────────────────────────────
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# ─── GitHub language stats (mark generated/vendored) ──────────────────────
+dist/** linguist-generated=true
+coverage/** linguist-generated=true
+*.tsbuildinfo linguist-generated=true
+package-lock.json linguist-generated=true
