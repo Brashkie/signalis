@@ -39,6 +39,7 @@ export const ErrorCode = {
   PREKEY_NOT_FOUND: 'PREKEY_NOT_FOUND',
   PREKEY_EXPIRED: 'PREKEY_EXPIRED',
   PREKEY_ALREADY_USED: 'PREKEY_ALREADY_USED',
+  PREKEY_INVALID_ID: 'PREKEY_INVALID_ID',
 
   // Serialization
   SERIALIZATION_ERROR: 'SERIALIZATION_ERROR',
@@ -204,6 +205,14 @@ export class PreKeyError extends SignalisError {
       `PreKey ${id} has already been used`,
       ErrorCode.PREKEY_ALREADY_USED,
       { id },
+    );
+  }
+
+  public static invalidId(id: unknown, min: number, max: number): PreKeyError {
+    return new PreKeyError(
+      `Invalid prekey id ${String(id)} (must be integer in [${min}, ${max}])`,
+      ErrorCode.PREKEY_INVALID_ID,
+      { id, min, max },
     );
   }
 }

@@ -10,7 +10,6 @@ import {
   MAX_PREKEY_ID,
   MIN_PREKEY_ID,
   MAX_REGISTRATION_ID,
-  MIN_REGISTRATION_ID,
   DEFAULT_DEVICE_ID,
   INFO_STRINGS,
   getX3DHInfo,
@@ -25,8 +24,8 @@ import {
 
 describe('Constants', () => {
   describe('Versioning', () => {
-    it('VERSION is "0.2.0"', () => {
-      expect(VERSION).toBe('0.2.0');
+    it('VERSION is "0.3.0"', () => {
+      expect(VERSION).toBe('0.3.0');
     });
 
     it('PROTOCOL_VERSION is 3', () => {

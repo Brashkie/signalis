@@ -17,22 +17,28 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov', 'json-summary', 'json'],
+      // Solo medimos cobertura del código fuente real (src/)
+      // Excluimos eslint.config.mjs (no es runtime) y src/index.ts (solo re-exports)
+      include: ['src/**/*.ts'],
       exclude: [
         'node_modules/',
         'dist/',
+        'coverage/',
         '__tests__/',
         '*.config.ts',
         '*.config.mts',
+        '*.config.mjs',
         '*.config.js',
-        'src/index.ts', // Solo re-exports
+        'src/index.ts',           // Solo re-exports
+        'src/**/index.ts',         // Re-exports de barrel files
       ],
-      // Thresholds para Sprint 1 (Identity Keys only).
-      // Subirán a 90% en Sprint 2 cuando coverage natural crezca.
+      // Thresholds Sprint 2 (PreKeys completos).
+      // Subirán a 95% en Sprint 3 cuando llegue Double Ratchet.
       thresholds: {
-        statements: 75,
-        branches: 75,
-        functions: 75,
-        lines: 75,
+        statements: 90,
+        branches: 85,
+        functions: 90,
+        lines: 90,
       },
     },
   },

@@ -1,6 +1,6 @@
 {
   "name": "@brashkie/signalis",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Signal Protocol implementation in TypeScript — Identity Keys + PreKeys + X3DH + Double Ratchet + Sender Keys",
   "type": "commonjs",
   "main": "./dist/index.cjs",

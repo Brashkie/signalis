@@ -54,9 +54,22 @@ v1.0 ─ Stable API + Production-ready
 
 ## 🚧 Sprint 2 (v0.3.0): PreKey Bundles + X3DH
 
-**Status:** Active development
+**Status:** Part 1 complete (v0.3.0 published)
 
-**Target:** ~4-6 weeks after v0.2.0
+### Part 1: PreKey Layer ✅ DONE (v0.3.0)
+
+- ✅ `OneTimePreKey` class with batch generation
+- ✅ `PublicOneTimePreKey` for server payloads
+- ✅ `SignedPreKey` class — signed with identity (XEd25519)
+- ✅ `PublicSignedPreKey.fromPayload()` with automatic verification
+- ✅ `PreKeyBundle` class — complete X3DH payload
+- ✅ `PreKeyBundle.fromPayload()` with automatic verification
+- ✅ Rotation/expiration helpers (`needsRotation`, `isExpired`, `ageMs`)
+- ✅ 140+ tests including Mallory forgery prevention
+
+### Part 2: X3DH Handshake 🚧 IN DEVELOPMENT
+
+**Target:** ~2-3 weeks after v0.3.0
 
 ### Goals
 

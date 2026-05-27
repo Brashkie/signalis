@@ -3,7 +3,7 @@
  *
  * Signal Protocol implementation in TypeScript.
  *
- * @version 0.2.0
+ * @version 0.3.0
  * @license Apache-2.0
  */
 
@@ -103,6 +103,27 @@ export {
   isIdentityKeyPair,
   isPublicIdentityKey,
 } from './identity';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PreKeys (NEW in v0.3.0)
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  OneTimePreKey,
+  PublicOneTimePreKey,
+  isOneTimePreKey,
+  isPublicOneTimePreKey,
+  type SerializedOneTimePreKey,
+  SignedPreKey,
+  PublicSignedPreKey,
+  isSignedPreKey,
+  isPublicSignedPreKey,
+  type SerializedSignedPreKey,
+  type PublicSignedPreKeyPayload,
+  PreKeyBundle,
+  isPreKeyBundle,
+  type PreKeyBundlePayload,
+  type PublicOneTimePreKeyPayload,
+} from './prekeys';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Crypto (for advanced users)

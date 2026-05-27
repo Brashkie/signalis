@@ -1,88 +1,81 @@
 # Migration Guide
 
-## v0.1.0 → v0.2.0
+## v0.2.0 → v0.3.0
 
 **TL;DR:** 100% drop-in replacement. Just update the version.
 
 ```bash
-npm install @brashkie/signalis@^0.2.0
+npm install @brashkie/signalis@^0.3.0
 ```
 
-No code changes needed. All v0.1.0 APIs continue to work identically.
-
-⚠️ **This update also bumps the underlying `@brashkie/signalis-core` dependency** from `^0.1.0` to `^0.2.0`. Run `npm install` after applying.
+No code changes needed. All v0.2.0 APIs continue to work identically.
 
 ---
 
 ## What's New (Capabilities You Now Have)
 
-You can now sign and verify data with identity keys — something that wasn't possible in v0.1.0.
+You can now publish and consume **PreKey Bundles** — the foundation for the X3DH handshake that lets you start sessions asynchronously.
 
-### Signing with your identity
+### Publishing prekeys (Bob's side)
 
 ```typescript
-import { IdentityKeyPair } from '@brashkie/signalis';
+import {
+  IdentityKeyPair,
+  SignedPreKey,
+  OneTimePreKey,
+  PreKeyBundle,
+} from '@brashkie/signalis';
 
-const alice = IdentityKeyPair.generate();
-const message = Buffer.from('Hello, signed world');
+// Bob's long-term identity (do this once at registration)
+const bob = IdentityKeyPair.generate();
 
-// NEW: sign
-const signature = alice.sign(message);
+// Medium-term signed prekey (rotate every 7 days)
+const bobSpk = SignedPreKey.generate(bob, 1);
 
-// NEW: verify (throws SignatureError on failure)
-alice.verify(message, signature);
+// One-time prekeys (generate a batch, upload public halves to server)
+const bobOtpks = OneTimePreKey.generateBatch(1, 100);
 
-// NEW: verify (boolean, no throw)
-if (alice.verifyBool(message, signature)) {
-  console.log('Valid');
+// Build the bundle for the server (it picks one OTPK per request)
+const bundleForAlice = PreKeyBundle.build({
+  registrationId: 12345,
+  deviceId: 1,
+  identityKey: bob.toPublic(),
+  signedPreKey: bobSpk.toPublic(),
+  oneTimePreKey: bobOtpks[0].toPublic(),
+});
+
+const payload = bundleForAlice.toPayload();
+await uploadToServer(payload);
+```
+
+### Fetching and verifying a peer's bundle (Alice's side)
+
+```typescript
+import { PreKeyBundle } from '@brashkie/signalis';
+
+const payload = await fetchBobBundleFromServer();
+
+// fromPayload AUTOMATICALLY verifies the signed prekey's signature
+// against the identity key in the bundle. Tampering → throws SignatureError.
+const bobBundle = PreKeyBundle.fromPayload(payload);
+
+console.log(`Bob address: ${bobBundle.address()}`);
+// Bundle ready for X3DH.initiate() in v0.4.0
+```
+
+### Rotation helpers
+
+```typescript
+const spk = SignedPreKey.generate(bob, 1);
+
+if (spk.needsRotation()) {
+  const fresh = SignedPreKey.generate(bob, spk.id + 1);
+  await uploadToServer(fresh.toPayload());
 }
-```
 
-### Verifying signatures from peers
-
-```typescript
-import { PublicIdentityKey } from '@brashkie/signalis';
-
-// Receive Alice's public identity over the network
-const alicePub = PublicIdentityKey.fromHex(receivedHex);
-
-// NEW: verify a signature from Alice
-try {
-  alicePub.verify(message, signature);
-  console.log('✅ Authentic message from Alice');
-} catch (e) {
-  console.error('❌ Tampered or forged');
+if (spk.isExpired()) {
+  throw new Error('SignedPreKey too old to use');
 }
-```
-
-### AES-GCM with AAD (low-level)
-
-```typescript
-import { crypto } from '@brashkie/signalis';
-
-// NEW: bind metadata (header) to ciphertext
-const header = Buffer.from(JSON.stringify({ msg_id: 1, from: 'alice' }));
-const ct = crypto.aesGcmEncryptWithAad(key, nonce, body, header);
-
-// Must pass SAME header to decrypt; mismatch fails
-const pt = crypto.aesGcmDecryptWithAad(key, nonce, ct, header);
-```
-
-### Ed25519 (standard, deterministic)
-
-For when you want **separate signing keys** (not the Curve25519 identity key):
-
-```typescript
-import { crypto } from '@brashkie/signalis';
-
-// NEW: separate Ed25519 keypair
-const ed = crypto.generateEd25519KeyPair();
-const sig = crypto.signEd25519(ed.privateKey, message);  // deterministic
-crypto.verifyEd25519(ed.publicKey, message, sig);
-
-// NEW: derive Ed25519 from a 32-byte seed (deterministic, reproducible)
-const seed = Buffer.alloc(32, 0x42);
-const fromSeed = crypto.ed25519FromSeed(seed);
 ```
 
 ---
@@ -92,15 +85,14 @@ const fromSeed = crypto.ed25519FromSeed(seed);
 ### 1. Update the package
 
 ```bash
-npm install @brashkie/signalis@^0.2.0
-# This automatically updates @brashkie/signalis-core to ^0.2.0
+npm install @brashkie/signalis@^0.3.0
 ```
 
 ### 2. Verify the version
 
 ```bash
 node -e "console.log(require('@brashkie/signalis').VERSION)"
-# Should print: 0.2.0
+# Should print: 0.3.0
 ```
 
 ### 3. Run your existing tests
@@ -111,130 +103,53 @@ Your existing test suite should pass without modifications.
 npm test
 ```
 
-If anything fails, [open an issue](https://github.com/Brashkie/signalis/issues) — that would be a bug in v0.2.0.
-
-### 4. (Optional) Adopt new features
-
-Replace any manual HMAC-based "authentication" with proper signatures:
-
-**Before (v0.1.0 workaround):**
-```typescript
-// Using HMAC over arbitrary data
-const tag = crypto.hmac(sharedKey, dataToAuthenticate);
-const valid = crypto.hmacVerify(sharedKey, dataToAuthenticate, receivedTag);
-```
-
-**After (v0.2.0 proper):**
-```typescript
-// Sign with identity key, verify with public key
-const sig = alice.sign(dataToAuthenticate);
-alicePub.verify(dataToAuthenticate, sig);
-```
-
-**When to use which:**
-
-| Need | Use |
-|------|-----|
-| Anyone with my **public key** can verify | `identity.sign()` / `pub.verify()` (XEd25519) |
-| Both sides already share a **secret key** | `crypto.hmac()` / `hmacVerify()` |
-
 ---
 
 ## What's NOT Changed
 
-These continue to work exactly as in v0.1.0:
+These continue to work exactly as in v0.2.0:
 
 | API | Status |
 |-----|--------|
-| `IdentityKeyPair.generate()` | ✅ Unchanged |
-| `IdentityKeyPair.fromKeys()` | ✅ Unchanged |
-| `IdentityKeyPair.deserialize()` | ✅ Unchanged |
-| `identity.serialize()` | ✅ Unchanged |
-| `identity.toPublic()` | ✅ Unchanged |
-| `identity.fingerprint()` / `shortFingerprint()` | ✅ Unchanged |
-| `identity.equals(other)` | ✅ Unchanged |
-| `identity.toJSON()` / `toString()` | ✅ Unchanged (still safe) |
-| `PublicIdentityKey.fromHex()` / `fromBase64()` | ✅ Unchanged |
-| `pub.toHex()` / `toBase64()` | ✅ Unchanged |
-| `pub.fingerprint()` / `shortFingerprint()` | ✅ Unchanged |
-| `pub.equals()` | ✅ Unchanged |
+| `IdentityKeyPair.*` (all methods) | ✅ Unchanged |
+| `PublicIdentityKey.*` (all methods) | ✅ Unchanged |
+| `IdentityKeyPair.sign() / verify()` (v0.2.0 XEd25519) | ✅ Unchanged |
 | All branded types | ✅ Unchanged |
 | All error classes | ✅ Unchanged |
+| All `crypto.*` wrappers | ✅ Unchanged |
 | All constants (except `VERSION`) | ✅ Unchanged |
-| All `crypto.*` wrappers (existing ones) | ✅ Unchanged |
-
-The only observable changes are:
-- `VERSION === '0.2.0'`
-- `@brashkie/signalis-core` dependency is now `^0.2.0`
-
----
-
-## Performance
-
-No performance regressions. New primitives:
-
-| Operation | Approximate throughput |
-|-----------|------------------------|
-| `identity.sign()` (XEd25519) | ~25,000/sec |
-| `identity.verify()` (XEd25519) | ~10,000/sec |
-| `crypto.signEd25519()` | ~25,000/sec |
-| `crypto.verifyEd25519()` | ~10,000/sec |
-| AES-GCM with AAD | <5% overhead vs no AAD |
-
-(From `@brashkie/signalis-core` benchmarks on M2 MacBook Pro.)
-
----
-
-## Compatibility Matrix
-
-| Node.js | Status |
-|---------|--------|
-| 18.x | ✅ Supported |
-| 20.x | ✅ Supported |
-| 22.x | ✅ Supported |
-| 24.x | ✅ Supported |
-
-| Platform | Status |
-|----------|--------|
-| Windows x64 (MSVC) | ✅ Prebuilt (via signalis-core) |
-| macOS x64 / arm64 | ✅ Prebuilt |
-| Linux x64 / arm64 (glibc + musl) | ✅ Prebuilt |
 
 ---
 
 ## FAQ
 
-### Q: Do I have to change anything in my code?
+### Q: Do I have to publish prekeys to use signalis?
 
-**A:** No. v0.2.0 is 100% backwards compatible.
+**A:** Not yet. PreKeys are only needed for X3DH (Sprint 2 Part 2 — v0.4.0). v0.3.0 ships the data structures; v0.4.0 wires them into the handshake.
 
-### Q: Why use XEd25519 instead of Ed25519?
+### Q: How many one-time prekeys should I generate?
 
-**A:**
-- **XEd25519** uses your existing Curve25519 identity key for signing. This is what the **Signal Protocol** does — one key for ECDH and signing.
-- **Ed25519** requires a separate keypair but is deterministic (RFC 8032 compliant).
+**A:** The convention is 100 at a time (`MAX_ONE_TIME_PREKEYS`). Refill when you go below 10 (`MIN_ONE_TIME_PREKEYS`).
 
-Use XEd25519 by default unless you need RFC 8032 compatibility or deterministic signatures.
+### Q: How often should I rotate the SignedPreKey?
 
-### Q: Is XEd25519 less secure than Ed25519?
+**A:** Every 7 days is recommended (`SIGNED_PREKEY_ROTATION_MS`). Past 30 days (`SIGNED_PREKEY_MAX_AGE_MS`) it should not be used for new sessions.
 
-**A:** No. Both provide the same 128-bit security level. XEd25519 is a clever construction that lets you reuse a Curve25519 key for signing without compromising security. It's been used by Signal in production for years.
+### Q: What if PreKeyBundle.fromPayload throws SignatureError?
 
-### Q: When will Sprint 2 (X3DH) be ready?
+**A:** That means either:
+- The bundle was tampered with in transit
+- The server is malicious and substituted keys
+- The `identityKey` field doesn't match the one that originally signed the prekey
 
-**A:** Sprint 2 is being actively developed. See [ROADMAP.md](ROADMAP.md) for status.
-
-### Q: What if I find a bug?
-
-**A:** [Open an issue](https://github.com/Brashkie/signalis/issues) on GitHub. For security issues, see [SECURITY.md](SECURITY.md).
+Treat it as a critical security event. Do not proceed.
 
 ---
 
-## Resources
+## v0.1.0 → v0.2.0 (Previous Migration)
 
-- [README.md](README.md) — Library overview
-- [API.md](API.md) — Full API reference
-- [EXAMPLES.md](EXAMPLES.md) — Usage examples
-- [CHANGELOG.md](CHANGELOG.md) — Full release history
+If you're coming from v0.1.0, you can update directly to v0.3.0 — both upgrades are backwards compatible. See the [v0.2.0 migration notes](https://github.com/Brashkie/signalis/blob/v0.2.0/MIGRATION.md) for the XEd25519 signing additions.
+
+---
 
 🔐 + ❤️ Hepein Oficial

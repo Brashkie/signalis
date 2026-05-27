@@ -269,11 +269,13 @@ export class IdentityKeyPair implements KeyPair {
     try {
       pubBuf = Buffer.from(obj['publicKey'], 'hex');
       privBuf = Buffer.from(obj['privateKey'], 'hex');
+      /* c8 ignore start — Buffer.from(hex) in Node never throws; defensive */
     } catch (e) {
       throw new SerializationError(
         `Hex decoding failed: ${(e as Error).message}`,
       );
     }
+    /* c8 ignore stop */
 
     // Validate sizes
     if (pubBuf.length !== PUBLIC_KEY_SIZE) {
