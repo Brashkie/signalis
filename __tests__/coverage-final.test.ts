@@ -16,7 +16,6 @@ import { describe, it, expect } from 'vitest';
 import { IdentityKeyPair } from '../src/identity';
 import {
   OneTimePreKey,
-  PublicOneTimePreKey,
   SignedPreKey,
   PublicSignedPreKey,
 } from '../src/prekeys';

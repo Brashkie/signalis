@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] — 2026-05-28
+
+### ✨ Added — Sprint 2 Part 2: X3DH Handshake
+
+The complete Extended Triple Diffie-Hellman protocol from the Signal spec.
+Alice and Bob now derive the same 32-byte shared secret asynchronously,
+ready to seed the Double Ratchet in v0.5.0.
+
+- **`X3DH.initiate(myIdentity, theirBundle, options)`** — Initiator (Alice) flow
+  - Generates a fresh ephemeral keypair
+  - Performs 4 ECDH operations (DH1, DH2, DH3, DH4)
+  - Derives shared secret via HKDF-SHA256 with `Signalis_X3DH_v1` info
+  - Returns `{ sharedSecret, initialMessage, ephemeralPublicKey }`
+  - Rejects expired SignedPreKeys by default (configurable)
+- **`X3DH.receive(myIdentity, mySpk, myOpk, initialMessage)`** — Responder (Bob) flow
+  - Looks up his prekeys by ID from the initial message
+  - Performs the mirror 4 ECDH operations
+  - Derives the same shared secret Alice computed
+  - Returns `{ sharedSecret, oneTimePreKeyId }` so caller can delete consumed OPK
+- **`InitialMessage`** class — Structured wire format for the X3DH initial payload
+- **`computeInitiatorSharedSecret(...)`** — Low-level primitive (advanced use)
+- **`computeResponderSharedSecret(...)`** — Low-level primitive (advanced use)
+- New constants:
+  - `X3DH_SECRET_SIZE = 32`
+  - `X3DH_INITIAL_MESSAGE_MAX_AGE_MS = 30 days`
+  - `getX3DHSalt()` — 32 zero bytes (per X3DH spec)
+  - `getX3DHPrefix()` — 32 0xFF bytes (per X3DH spec)
+- Updated `getX3DHInfo()` returns `'Signalis_X3DH_v1'` (was `'Signalis_X3DH_Key'`)
+- New types: `InitialMessagePayload`, `X3DHInitiateResult`, `X3DHReceiveResult`, `X3DHInitiateOptions`
+- 50+ new tests including E2E, Mallory attacks, wire-format roundtrip
+
+### 🔄 Changed
+
+- **`VERSION`** constant bumped to `'0.4.0'`
+- `X3DH_INFO_STR` changed to `'Signalis_X3DH_v1'` for explicit version identifier (Signal spec compliant)
+
+### 🔒 Security
+
+- `X3DH.initiate` refuses to use expired SignedPreKeys by default (30-day max)
+- Mismatched SPK/OPK IDs between initial message and Bob's stored keys throw `PreKeyError`
+- Implementation matches the [Signal X3DH spec](https://signal.org/docs/specifications/x3dh/) exactly:
+  - F = 0xFF × 32 prefix
+  - HKDF salt = 32 zero bytes
+  - DH order: DH1=IK_A·SPK_B, DH2=EK_A·IK_B, DH3=EK_A·SPK_B, DH4=EK_A·OPK_B
+
+### ✅ Compatibility
+
+**100% backwards compatible with v0.3.0.**
+
+### 📋 What's Next
+
+Sprint 3 (v0.5.0): the Double Ratchet algorithm.
+
+---
+
 ## [0.3.0] — 2026-05-26
 
 ### ✨ Added — Sprint 2 Part 1: PreKey Layer

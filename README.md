@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node.js Version](https://img.shields.io/node/v/@brashkie/signalis.svg?style=flat-square&color=339933)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg?style=flat-square)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-395%20passing-success.svg?style=flat-square)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-458%20passing-success.svg?style=flat-square)](#-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg?style=flat-square)](#-testing)
 [![CI](https://img.shields.io/github/actions/workflow/status/Brashkie/signalis/ci.yml?style=flat-square&label=CI)](https://github.com/Brashkie/signalis/actions/workflows/ci.yml)
 [![Powered by Rust](https://img.shields.io/badge/powered_by-Rust-orange.svg?style=flat-square)](https://www.rust-lang.org)
@@ -60,7 +60,124 @@ Built with 🔐 + ❤️ by [Hepein Oficial](https://github.com/Brashkie)
 
 ---
 
-## 🎉 What's New in v0.3.0
+## 🎉 What's New in v0.4.0
+
+**v0.4.0 ships the X3DH handshake — the asynchronous key agreement that makes Signal famous.** Alice and Bob now derive the **same 32-byte shared secret** without ever being online at the same time.
+
+### 🆕 New API
+
+```typescript
+import { X3DH, InitialMessage } from '@brashkie/signalis';
+
+// Alice initiates a session with Bob (Bob can be offline)
+const { sharedSecret, initialMessage } = X3DH.initiate(
+  myIdentity,   // IdentityKeyPair
+  bobBundle,    // PreKeyBundle (verified from server)
+  { myRegistrationId: 12345 },
+);
+
+// Later, Bob processes Alice's initial message
+const { sharedSecret, oneTimePreKeyId } = X3DH.receive(
+  myIdentity,        // IdentityKeyPair
+  mySignedPreKey,    // SignedPreKey matching initialMessage.signedPreKeyId
+  myOneTimePreKey,   // OneTimePreKey (or null)
+  initialMessage,    // Alice's payload
+);
+
+// Both Alice and Bob now have THE SAME sharedSecret (32 bytes)
+// → ready to seed the Double Ratchet in v0.5.0
+```
+
+### 🔬 What's Inside
+
+| Feature | Description |
+|---------|-------------|
+| `X3DH.initiate(...)` | Initiator (Alice) flow: generate ephemeral, 4-way DH, HKDF |
+| `X3DH.receive(...)` | Responder (Bob) flow: mirror the 4 DHs from his side |
+| `InitialMessage` | Wire-format payload class with `fromPayload()` / `toPayload()` |
+| `computeInitiatorSharedSecret(...)` | Low-level primitive (advanced use) |
+| `computeResponderSharedSecret(...)` | Low-level primitive (advanced use) |
+| Expired SPK rejection | Defaults to 30-day max age (configurable) |
+| SPK/OPK ID validation | Throws `PreKeyError` on mismatch |
+
+### 📐 Spec Compliance
+
+Matches the [Signal X3DH spec](https://signal.org/docs/specifications/x3dh/) exactly:
+
+```
+F  = 0xFF × 32        (prefix for Curve25519)
+KM = F || DH1 || DH2 || DH3 [|| DH4]
+SK = HKDF-SHA256(salt=0x00×32, IKM=KM, info="Signalis_X3DH_v1", L=32)
+
+DH1 = DH(IK_A,  SPK_B)    — my identity ↔ their signed prekey
+DH2 = DH(EK_A,  IK_B)     — my ephemeral ↔ their identity
+DH3 = DH(EK_A,  SPK_B)    — my ephemeral ↔ their signed prekey
+DH4 = DH(EK_A,  OPK_B)    — my ephemeral ↔ their one-time prekey (if used)
+```
+
+### 📊 Quality Metrics
+
+```
+✅ 458 tests passing  (was 395 in v0.3.0)
+✅ 100% coverage      (preserved)
+✅ Full Signal spec compliance
+✅ Mallory-style attack tests included
+```
+
+**100% backwards compatible** with v0.3.0.
+
+---
+
+## 🎉 What's New in v0.4.0
+
+**v0.4.0 ships X3DH — the heart of Signal Protocol.** Alice and Bob can now derive the **same 32-byte shared secret** without being online simultaneously. This is the asynchronous handshake that makes E2E messaging work when one party is offline.
+
+### 🆕 New APIs
+
+```typescript
+import { X3DH } from '@brashkie/signalis';
+
+// Alice initiates (knows Bob is offline, fetches bundle from server)
+const { sharedSecret, initialMessage } = X3DH.initiate(alice, bobBundle, {
+  myRegistrationId: 12345,
+});
+
+// Bob receives later
+const { sharedSecret } = X3DH.receive(bob, bobSpk, bobOpk, initialMessage);
+
+// Both have the SAME secret → ready for Double Ratchet (Sprint 3)
+```
+
+| Class / Function | Purpose |
+|---|---|
+| `X3DH.initiate(myIdentity, theirBundle, options)` | Alice's side: 4 DHs + HKDF → SharedSecret |
+| `X3DH.receive(myIdentity, mySpk, myOpk, msg)` | Bob's side: derives same SharedSecret |
+| `InitialMessage` | Structured wire-format Alice attaches to first encrypted message |
+| `computeInitiatorSharedSecret` | Low-level primitive (advanced use) |
+| `computeResponderSharedSecret` | Low-level primitive (advanced use) |
+
+### 🔒 Security Built-In
+
+- ✅ Rejects expired SignedPreKeys by default (30-day max)
+- ✅ Mismatched SPK/OPK IDs throw `PreKeyError`
+- ✅ Wire-format tampering caught at deserialization
+- ✅ Spec-compliant with Signal X3DH (F=0xFF×32 prefix, HKDF salt=0x00×32, info="Signalis_X3DH_v1")
+
+### 📊 Quality Metrics
+
+```
+✅ 458 tests passing
+✅ 100% statements
+✅ 100% branches
+✅ 100% functions
+✅ 100% lines
+```
+
+**100% backwards compatible** with v0.3.0.
+
+---
+
+## 🕰️ Previous: v0.3.0 — PreKey Layer
 
 **v0.3.0 ships the PreKey layer — the foundation for X3DH.** Bob can now publish a `PreKeyBundle` containing identity-signed prekeys, and Alice can fetch and **automatically verify** that bundle before initiating a session.
 
@@ -107,10 +224,10 @@ Built with 🔐 + ❤️ by [Hepein Oficial](https://github.com/Brashkie)
 | 🧪 **100% test coverage** with RFC vectors | ✅ | 2.1 |
 | 🔐 **Safe defaults** (no toString leaks of private keys) | ✅ | 1 |
 | 💾 **Serialization/deserialization** (JSON-safe) | ✅ | 1 |
-| 🔁 **One-Time PreKeys** | ✅ NEW | 2.1 |
-| ✍️ **Signed PreKeys** (signed with identity via XEd25519) | ✅ NEW | 2.1 |
-| 📦 **PreKey Bundles** (server-facing X3DH payload) | ✅ NEW | 2.1 |
-| 🤝 **X3DH** (Extended Triple Diffie-Hellman) | 🚧 | 2.2 |
+| 🔁 **One-Time PreKeys** | ✅ | 2.1 |
+| ✍️ **Signed PreKeys** (signed with identity via XEd25519) | ✅ | 2.1 |
+| 📦 **PreKey Bundles** (server-facing X3DH payload) | ✅ | 2.1 |
+| 🤝 **X3DH** (Extended Triple Diffie-Hellman) | ✅ NEW | 2.2 |
 | 🪜 **Double Ratchet** (forward + backward secrecy) | 🚧 | 3 |
 | 💾 **Pluggable storage layer** | 🚧 | 4 |
 | 👥 **Sender Keys** (group messaging) | 🚧 | 5 |
@@ -182,6 +299,7 @@ import {
   SignedPreKey,
   OneTimePreKey,
   PreKeyBundle,
+  X3DH,
 } from '@brashkie/signalis';
 
 // ════════════════════════════════════════════════════════════════════════
@@ -283,6 +401,41 @@ try {
   console.log('Error:', (e as Error).message);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// PART 5: X3DH Handshake — Alice & Bob derive the SAME secret ✨ NEW v0.4.0
+// ════════════════════════════════════════════════════════════════════════
+
+console.log('\n🤝 PART 5 — X3DH Handshake\n');
+
+// Alice initiates: she generates a fresh ephemeral key, runs 4 DHs,
+// derives a shared secret via HKDF, and produces an "initial message"
+// to send Bob along with her first encrypted message.
+const handshake = X3DH.initiate(alice, verifiedBundle, {
+  myRegistrationId: 6789,
+  myDeviceId: 1,
+});
+
+console.log('Alice derived secret:',
+  handshake.sharedSecret.toString('hex').slice(0, 16) + '...');
+console.log('Initial message: SPK id =', handshake.initialMessage.signedPreKeyId,
+            ', OTPK id =', handshake.initialMessage.oneTimePreKeyId);
+
+// Bob (when he comes back online) receives Alice's initial message and
+// uses his stored private prekeys to derive the SAME shared secret.
+// In a real app, Bob would look up the SPK/OTPK by ID from his store.
+const bobResult = X3DH.receive(bob, bobSpk, bobOpks[0], handshake.initialMessage);
+
+console.log('Bob derived secret:  ',
+  bobResult.sharedSecret.toString('hex').slice(0, 16) + '...');
+console.log('Bob should now DELETE OneTimePreKey id', bobResult.oneTimePreKeyId,
+            'from his store (forward secrecy)');
+
+const secretsMatch = handshake.sharedSecret.equals(bobResult.sharedSecret);
+console.log('\n🎉 Same secret on both sides?', secretsMatch);
+//          ↑ true ✅ — Alice and Bob now share a 32-byte secret
+//          without ever being online at the same time. This seeds
+//          the Double Ratchet in Sprint 3 (v0.5.0).
+
 console.log('\n🎉 Quick Start Complete!\n');
 ```
 
@@ -327,6 +480,15 @@ Bundle verified ✅
 
 Tampered bundle rejected ✅
 Error: SignedPreKey signature verification failed for prekey id 1
+
+🤝 PART 5 — X3DH Handshake
+
+Alice derived secret: 8a3f5b9d2c7e1042...
+Initial message: SPK id = 1 , OTPK id = 1
+Bob derived secret:   8a3f5b9d2c7e1042...
+Bob should now DELETE OneTimePreKey id 1 from his store (forward secrecy)
+
+🎉 Same secret on both sides? true
 
 🎉 Quick Start Complete!
 ```
@@ -822,13 +984,15 @@ Total install: ~600 KB (vs 1.5 MB+ for pure-JS alternatives)
 - ✅ Rotation/expiration lifecycle helpers
 - ✅ 395 tests, 100% coverage
 
-### 🚧 Sprint 2 Part 2: X3DH (v0.4.0) — IN DEVELOPMENT
-- 🚧 `X3DH.initiate(myIdentity, bobBundle)`
-- 🚧 `X3DH.receive(myIdentity, mySpk, myOtpk?, initialMessage)`
-- 🚧 4-way DH (DH1 + DH2 + DH3 + DH4)
-- 🚧 HKDF derivation with `Signalis_X3DH_v1` domain separator
+### ✅ Sprint 2 Part 2: X3DH (v0.4.0) — COMPLETE
+- ✅ `X3DH.initiate(myIdentity, bobBundle)`
+- ✅ `X3DH.receive(myIdentity, mySpk, myOtpk?, initialMessage)`
+- ✅ 4-way DH (DH1 + DH2 + DH3 + DH4)
+- ✅ HKDF derivation with `Signalis_X3DH_v1` domain separator
+- ✅ `InitialMessage` class with wire-format roundtrip
+- ✅ 458 tests, 100% coverage
 
-### 🔜 Sprint 3: Double Ratchet (v0.5.0)
+### 🚧 Sprint 3: Double Ratchet (v0.5.0) — NEXT
 - 🔜 Symmetric key ratchet + DH ratchet
 - 🔜 Skipped message keys (out-of-order delivery)
 - 🔜 Full forward + backward secrecy

@@ -86,7 +86,7 @@ export const MAX_DEVICE_ID = 0x7fffffff as const;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Signalis library version */
-export const VERSION = '0.3.0' as const;
+export const VERSION = '0.4.0' as const;
 
 /** Signal Protocol version */
 export const PROTOCOL_VERSION = 3 as const;
@@ -98,7 +98,7 @@ export const PROTOCOL_VERSION = 3 as const;
 // preventing accidental mutation of shared state.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const X3DH_INFO_STR = 'Signalis_X3DH_Key';
+const X3DH_INFO_STR = 'Signalis_X3DH_v1';
 const RATCHET_INFO_STR = 'Signalis_Ratchet_Root';
 const CHAIN_INFO_STR = 'Signalis_Chain_Key';
 const MESSAGE_INFO_STR = 'Signalis_Message_Key';
@@ -177,3 +177,47 @@ export function isValidDeviceId(id: unknown): id is number {
     id <= MAX_DEVICE_ID
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// X3DH Constants (NEW v0.4.0)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * X3DH derived shared secret size in bytes (32).
+ *
+ * This is the size of the root key fed into the Double Ratchet.
+ */
+export const X3DH_SECRET_SIZE = 32 as const;
+
+/**
+ * X3DH HKDF salt — a string of zero bytes of length HASH_SIZE (32).
+ *
+ * The Signal X3DH spec requires the salt to be 32 zero bytes:
+ * https://signal.org/docs/specifications/x3dh/#sending-the-initial-message
+ *
+ * Returns a fresh Buffer each call to prevent accidental mutation.
+ */
+export function getX3DHSalt(): Buffer {
+  return Buffer.alloc(HASH_SIZE, 0x00);
+}
+
+/**
+ * X3DH HKDF prefix — a string of 32 0xFF bytes prepended to the DH outputs.
+ *
+ * The Signal X3DH spec for Curve25519 requires F = 0xFF * 32 to differentiate
+ * X3DH HKDF inputs from typical Curve25519 byte strings:
+ * https://signal.org/docs/specifications/x3dh/#cryptographic-notation
+ *
+ * Returns a fresh Buffer each call.
+ */
+export function getX3DHPrefix(): Buffer {
+  return Buffer.alloc(HASH_SIZE, 0xff);
+}
+
+/**
+ * Maximum age (ms) of a one-time prekey id reference in initial messages,
+ * after which the message should be considered stale.
+ *
+ * Default: 30 days. Implementations can override.
+ */
+export const X3DH_INITIAL_MESSAGE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;

@@ -3,7 +3,7 @@
  *
  * Signal Protocol implementation in TypeScript.
  *
- * @version 0.3.0
+ * @version 0.4.0
  * @license Apache-2.0
  */
 
@@ -36,6 +36,11 @@ export {
   MIN_REGISTRATION_ID,
   DEFAULT_DEVICE_ID,
   MAX_DEVICE_ID,
+  // X3DH (NEW v0.4.0)
+  X3DH_SECRET_SIZE,
+  X3DH_INITIAL_MESSAGE_MAX_AGE_MS,
+  getX3DHSalt,
+  getX3DHPrefix,
   // Info strings
   INFO_STRINGS,
   getX3DHInfo,
@@ -105,7 +110,7 @@ export {
 } from './identity';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PreKeys (NEW in v0.3.0)
+// PreKeys
 // ═══════════════════════════════════════════════════════════════════════════
 export {
   OneTimePreKey,
@@ -124,6 +129,21 @@ export {
   type PreKeyBundlePayload,
   type PublicOneTimePreKeyPayload,
 } from './prekeys';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// X3DH (NEW in v0.4.0)
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  X3DH,
+  InitialMessage,
+  isInitialMessage,
+  computeInitiatorSharedSecret,
+  computeResponderSharedSecret,
+  type X3DHInitiateOptions,
+  type InitialMessagePayload,
+  type X3DHInitiateResult,
+  type X3DHReceiveResult,
+} from './x3dh';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Crypto (for advanced users)

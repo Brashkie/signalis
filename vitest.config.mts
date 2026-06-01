@@ -18,7 +18,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov', 'json-summary', 'json'],
       // Solo medimos cobertura del código fuente real (src/)
-      // Excluimos eslint.config.mjs (no es runtime) y src/index.ts (solo re-exports)
+      // Excluimos:
+      //   - eslint.config.mjs (no es runtime)
+      //   - barrel re-exports (sin lógica)
+      //   - x3dh/types.ts (archivo solo-interfaces, desaparece en runtime)
       include: ['src/**/*.ts'],
       exclude: [
         'node_modules/',
@@ -31,14 +34,15 @@ export default defineConfig({
         '*.config.js',
         'src/index.ts',           // Solo re-exports
         'src/**/index.ts',         // Re-exports de barrel files
+        'src/x3dh/types.ts',       // Solo interfaces TS (desaparecen al compilar)
       ],
-      // Thresholds Sprint 2 (PreKeys completos).
+      // Thresholds Sprint 2 (PreKeys completos + X3DH).
       // Subirán a 95% en Sprint 3 cuando llegue Double Ratchet.
       thresholds: {
-        statements: 90,
-        branches: 85,
-        functions: 90,
-        lines: 90,
+        statements: 95,
+        branches: 90,
+        functions: 95,
+        lines: 95,
       },
     },
   },

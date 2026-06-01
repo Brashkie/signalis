@@ -60,7 +60,56 @@ Hecho con 🔐 + ❤️ por [Hepein Oficial](https://github.com/Brashkie)
 
 ---
 
-## 🎉 Novedades en v0.3.0
+## 🎉 Novedades en v0.4.0
+
+**v0.4.0 trae X3DH — el corazón del Protocolo Signal.** Alice y Bob pueden ahora derivar **el mismo secreto compartido de 32 bytes** sin estar online simultáneamente. Este es el handshake asíncrono que hace que el cifrado E2E funcione cuando una de las dos partes está offline.
+
+### 🆕 Nuevas APIs
+
+```typescript
+import { X3DH } from '@brashkie/signalis';
+
+// Alice inicia (sabe que Bob está offline, descarga su bundle del servidor)
+const { sharedSecret, initialMessage } = X3DH.initiate(alice, bobBundle, {
+  myRegistrationId: 12345,
+});
+
+// Bob recibe más tarde
+const { sharedSecret } = X3DH.receive(bob, bobSpk, bobOpk, initialMessage);
+
+// Ambos tienen EL MISMO secreto → listo para el Double Ratchet (Sprint 3)
+```
+
+| Clase / Función | Propósito |
+|---|---|
+| `X3DH.initiate(myIdentity, theirBundle, options)` | Lado de Alice: 4 DHs + HKDF → SharedSecret |
+| `X3DH.receive(myIdentity, mySpk, myOpk, msg)` | Lado de Bob: deriva el mismo SharedSecret |
+| `InitialMessage` | Wire format estructurado que Alice adjunta al primer mensaje cifrado |
+| `computeInitiatorSharedSecret` | Primitiva de bajo nivel (uso avanzado) |
+| `computeResponderSharedSecret` | Primitiva de bajo nivel (uso avanzado) |
+
+### 🔒 Seguridad Incluida
+
+- ✅ Rechaza SignedPreKeys expirados por defecto (máx 30 días)
+- ✅ IDs de SPK/OPK que no coinciden lanzan `PreKeyError`
+- ✅ Tampering en wire-format detectado en deserialización
+- ✅ Compatible con spec Signal X3DH (F=0xFF×32 prefix, HKDF salt=0x00×32, info="Signalis_X3DH_v1")
+
+### 📊 Métricas de Calidad
+
+```
+✅ 458 tests pasando
+✅ 100% statements
+✅ 100% branches
+✅ 100% functions
+✅ 100% lines
+```
+
+**100% compatible hacia atrás** con v0.3.0.
+
+---
+
+## 🕰️ Anterior: v0.3.0 — Capa de PreKeys
 
 **v0.3.0 trae la capa de PreKeys — la base para X3DH.** Bob puede publicar un `PreKeyBundle` con prekeys firmados con su identity, y Alice puede descargarlo y **verificarlo automáticamente** antes de iniciar una sesión.
 
@@ -182,6 +231,7 @@ import {
   SignedPreKey,
   OneTimePreKey,
   PreKeyBundle,
+  X3DH,
 } from '@brashkie/signalis';
 
 // ════════════════════════════════════════════════════════════════════════
@@ -283,6 +333,41 @@ try {
   console.log('Error:', (e as Error).message);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// PARTE 5: Handshake X3DH — Alice y Bob derivan EL MISMO secreto ✨ NUEVO v0.4.0
+// ════════════════════════════════════════════════════════════════════════
+
+console.log('\n🤝 PARTE 5 — Handshake X3DH\n');
+
+// Alice inicia: genera una llave efímera fresca, ejecuta 4 DHs,
+// deriva un secreto compartido via HKDF, y produce un "mensaje inicial"
+// para enviar a Bob junto con su primer mensaje cifrado.
+const handshake = X3DH.initiate(alice, bundleVerificado, {
+  myRegistrationId: 6789,
+  myDeviceId: 1,
+});
+
+console.log('Secreto derivado por Alice:',
+  handshake.sharedSecret.toString('hex').slice(0, 16) + '...');
+console.log('Mensaje inicial: SPK id =', handshake.initialMessage.signedPreKeyId,
+            ', OTPK id =', handshake.initialMessage.oneTimePreKeyId);
+
+// Bob (cuando vuelve a estar online) recibe el mensaje inicial de Alice y
+// usa sus prekeys privados guardados para derivar EL MISMO secreto compartido.
+// En una app real, Bob buscaría el SPK/OTPK por id en su storage.
+const bobResult = X3DH.receive(bob, bobSpk, bobOtpks[0], handshake.initialMessage);
+
+console.log('Secreto derivado por Bob:  ',
+  bobResult.sharedSecret.toString('hex').slice(0, 16) + '...');
+console.log('Bob ahora debe BORRAR el OneTimePreKey id', bobResult.oneTimePreKeyId,
+            'de su storage (forward secrecy)');
+
+const secretosCoinciden = handshake.sharedSecret.equals(bobResult.sharedSecret);
+console.log('\n🎉 ¿Mismo secreto en ambos lados?', secretosCoinciden);
+//          ↑ true ✅ — Alice y Bob ahora comparten un secreto de 32 bytes
+//          sin haber estado online al mismo tiempo. Esto siembra
+//          el Double Ratchet en Sprint 3 (v0.5.0).
+
 console.log('\n🎉 ¡Inicio Rápido Completo!\n');
 ```
 
@@ -327,6 +412,15 @@ Bundle verificado ✅
 
 Bundle alterado rechazado ✅
 Error: SignedPreKey signature verification failed for prekey id 1
+
+🤝 PARTE 5 — Handshake X3DH
+
+Secreto derivado por Alice: 8a3f5b9d2c7e1042...
+Mensaje inicial: SPK id = 1 , OTPK id = 1
+Secreto derivado por Bob:   8a3f5b9d2c7e1042...
+Bob ahora debe BORRAR el OneTimePreKey id 1 de su storage (forward secrecy)
+
+🎉 ¿Mismo secreto en ambos lados? true
 
 🎉 ¡Inicio Rápido Completo!
 ```
