@@ -318,3 +318,88 @@ export {
   CoreSHA256 as SHA256,
   CoreAESGCM as AES_GCM,
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AES-256-CBC (Signal classic encryption — Sprint 3)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// We use Node's built-in `node:crypto` for AES-CBC since signalis-core's
+// AES_GCM is for the GCM mode only. CBC is a separate primitive.
+// `node:crypto` uses OpenSSL internally — battle-tested for decades.
+import { createCipheriv, createDecipheriv } from 'node:crypto';
+
+import {
+  AES_KEY_SIZE,
+  AES_CBC_IV_SIZE,
+} from './constants';
+
+/**
+ * Encrypt with AES-256-CBC and PKCS#7 padding.
+ *
+ * IMPORTANT: AES-CBC is NOT authenticated. The caller MUST authenticate
+ * the ciphertext separately (the Double Ratchet does this with HMAC-SHA256
+ * applied to header || ciphertext).
+ *
+ * @param key 32-byte key
+ * @param iv  16-byte IV (must be unique per (key, plaintext) pair)
+ * @param plaintext data to encrypt
+ * @returns encrypted ciphertext (with PKCS#7 padding)
+ *
+ * @throws {ValidationError} On wrong key/IV size
+ */
+export function aesCbcEncrypt(
+  key: Buffer,
+  iv: Buffer,
+  plaintext: Buffer,
+): Buffer {
+  if (key.length !== AES_KEY_SIZE) {
+    throw new ValidationError(
+      `aesCbcEncrypt: key must be ${AES_KEY_SIZE} bytes (got ${key.length})`,
+      { keyLength: key.length, expected: AES_KEY_SIZE },
+    );
+  }
+  if (iv.length !== AES_CBC_IV_SIZE) {
+    throw new ValidationError(
+      `aesCbcEncrypt: iv must be ${AES_CBC_IV_SIZE} bytes (got ${iv.length})`,
+      { ivLength: iv.length, expected: AES_CBC_IV_SIZE },
+    );
+  }
+  const cipher = createCipheriv('aes-256-cbc', key, iv);
+  return Buffer.concat([cipher.update(plaintext), cipher.final()]);
+}
+
+/**
+ * Decrypt AES-256-CBC ciphertext (PKCS#7 padded).
+ *
+ * IMPORTANT: this does NOT authenticate the ciphertext. The caller MUST
+ * have already verified the HMAC before calling this. Decrypting unverified
+ * ciphertext is a padding-oracle attack waiting to happen.
+ *
+ * @param key 32-byte key
+ * @param iv  16-byte IV
+ * @param ciphertext encrypted data
+ * @returns decrypted plaintext
+ *
+ * @throws {ValidationError} On wrong sizes
+ * @throws {Error} On decryption/padding failure
+ */
+export function aesCbcDecrypt(
+  key: Buffer,
+  iv: Buffer,
+  ciphertext: Buffer,
+): Buffer {
+  if (key.length !== AES_KEY_SIZE) {
+    throw new ValidationError(
+      `aesCbcDecrypt: key must be ${AES_KEY_SIZE} bytes (got ${key.length})`,
+      { keyLength: key.length, expected: AES_KEY_SIZE },
+    );
+  }
+  if (iv.length !== AES_CBC_IV_SIZE) {
+    throw new ValidationError(
+      `aesCbcDecrypt: iv must be ${AES_CBC_IV_SIZE} bytes (got ${iv.length})`,
+      { ivLength: iv.length, expected: AES_CBC_IV_SIZE },
+    );
+  }
+  const decipher = createDecipheriv('aes-256-cbc', key, iv);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+}

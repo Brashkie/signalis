@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] — 2026-06-02
+
+### ✨ Added — Sprint 3 Part 1: Double Ratchet Primitives
+
+Low-level building blocks for the Double Ratchet algorithm. The high-level
+`Session` class arrives in v0.6.0 (Sprint 3 Part 2).
+
+- **`deriveRootKey(rk, myPriv, theirPub)`** — DH ratchet step
+  - HKDF-SHA256 with salt=oldRK, info="Signalis_RatchetRoot_v1"
+  - Returns new RootKey + new ChainKey
+- **`advanceChainKey(ck, counter)`** — symmetric chain advance
+  - HMAC-SHA256(ck, 0x01) → MessageKey seed
+  - HMAC-SHA256(ck, 0x02) → next ChainKey
+- **`advanceChainKeyN(ck, start, target)`** — skip-forward N steps
+  - Returns all intermediate MessageKeys (for skipped-key recovery)
+- **`expandMessageKey(mk)`** — HKDF to (AES-256 key, HMAC-SHA256 key, IV)
+  - 80-byte output split as 32 + 32 + 16
+- **`encryptWithMessageKey(mk, plaintext, ad)`** — Encrypt-then-MAC
+  - AES-256-CBC with PKCS#7 padding
+  - HMAC-SHA256 truncated to 8 bytes (Signal classic spec)
+- **`decryptWithMessageKey(mk, ct, mac, ad)`** — Verify-MAC-then-Decrypt
+  - MAC verified BEFORE decrypt (prevents padding-oracle attacks)
+  - Constant-time comparison via timingSafeEqual
+- **`MessageHeader`** class — 40-byte binary header
+  - `toBytes()`/`fromBytes()` for MAC computation + wire format
+  - `toPayload()`/`fromPayload()` for JSON storage
+  - Fields: dhPublicKey (32 bytes), n (uint32), pn (uint32)
+- **`SkippedMessageKeys`** class — anti-DoS cache for out-of-order messages
+  - Capped at 2000 keys by default (libsignal value)
+  - FIFO eviction at capacity
+  - `set()`/`take()`/`has()`/`assertCanAdd()` API
+  - Configurable maxKeys per instance
+- **New AES-CBC primitives in `crypto.ts`**
+  - `aesCbcEncrypt(key, iv, plaintext)` — uses `node:crypto` OpenSSL backend
+  - `aesCbcDecrypt(key, iv, ciphertext)` — unauthenticated; pair with MAC
+- **New constants:**
+  - `ROOT_KEY_SIZE = 32`, `CHAIN_KEY_SIZE = 32`
+  - `MESSAGE_KEY_MATERIAL_SIZE = 80`
+  - `MAC_TRUNCATE_SIZE = 8`
+  - `MAX_SKIPPED_MESSAGE_KEYS = 2000`
+  - `KDF_CK_NEXT_INPUT = 0x02`, `KDF_CK_MESSAGE_INPUT = 0x01`
+  - `getRatchetRootInfo()` → `'Signalis_RatchetRoot_v1'`
+  - `getMessageKeyInfo()` → `'Signalis_MessageKeys_v1'`
+- **New tests (~95):**
+  - 11 tests for `deriveRootKey` (E2E both sides match, forward secrecy, validation)
+  - 22 tests for `advanceChainKey` + `advanceChainKeyN`
+  - 14 tests for `expandMessageKey` + AES-CBC + HMAC encrypt/decrypt
+  - 15 tests for `MessageHeader` (binary + JSON wire format)
+  - 16 tests for `SkippedMessageKeys` (FIFO eviction, anti-DoS, etc.)
+  - 11 tests for AES-CBC primitive (round-trip, edge cases)
+  - 2 E2E tests: manual session simulation across DH ratchet rotation
+
+### 🔄 Changed
+
+- **`VERSION`** bumped to `'0.5.0'`
+
+### 🔒 Security
+
+- AES-CBC + HMAC follows Signal's "classic" encryption pattern (audited for >10 years)
+- MAC verification is constant-time (`timingSafeEqual`)
+- MAC verified BEFORE attempting decryption (mitigates padding-oracle)
+- `SkippedMessageKeys` capped at 2000 entries to prevent DoS via large `header.n`
+
+### ✅ Compatibility
+
+**100% backwards compatible with v0.4.0.** All existing APIs unchanged.
+
+### 📋 What's Next
+
+Sprint 3 Part 2 (v0.6.0): the high-level `Session` class.
+- `Session.initiateFromX3DH({...})` — Alice's first session
+- `Session.receiveFromX3DH({...})` — Bob's first session
+- `session.encrypt(plaintext)` / `session.decrypt(packet)`
+- `session.serialize()` / `Session.deserialize(data)`
+- Wires together: X3DH → RootKey → ChainKey → MessageKey → AES-CBC + HMAC
+
+---
+
 ## [0.4.0] — 2026-05-28
 
 ### ✨ Added — Sprint 2 Part 2: X3DH Handshake

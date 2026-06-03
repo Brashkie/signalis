@@ -3,7 +3,7 @@
  *
  * Signal Protocol implementation in TypeScript.
  *
- * @version 0.4.0
+ * @version 0.5.0
  * @license Apache-2.0
  */
 
@@ -20,6 +20,7 @@ export {
   HASH_SIZE,
   MAC_SIZE,
   AES_KEY_SIZE,
+  AES_CBC_IV_SIZE,
   AES_NONCE_SIZE,
   AES_TAG_SIZE,
   // PreKey
@@ -36,11 +37,19 @@ export {
   MIN_REGISTRATION_ID,
   DEFAULT_DEVICE_ID,
   MAX_DEVICE_ID,
-  // X3DH (NEW v0.4.0)
+  // X3DH
   X3DH_SECRET_SIZE,
   X3DH_INITIAL_MESSAGE_MAX_AGE_MS,
   getX3DHSalt,
   getX3DHPrefix,
+  // Double Ratchet (NEW v0.5.0)
+  ROOT_KEY_SIZE,
+  CHAIN_KEY_SIZE,
+  MESSAGE_KEY_MATERIAL_SIZE,
+  MAC_TRUNCATE_SIZE,
+  MAX_SKIPPED_MESSAGE_KEYS,
+  getRatchetRootInfo,
+  getMessageKeyInfo,
   // Info strings
   INFO_STRINGS,
   getX3DHInfo,
@@ -131,7 +140,7 @@ export {
 } from './prekeys';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// X3DH (NEW in v0.4.0)
+// X3DH
 // ═══════════════════════════════════════════════════════════════════════════
 export {
   X3DH,
@@ -144,6 +153,36 @@ export {
   type X3DHInitiateResult,
   type X3DHReceiveResult,
 } from './x3dh';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Double Ratchet Primitives (NEW v0.5.0)
+//
+// Note: A high-level `Session` class will be added in Sprint 3 Part 2 (v0.6.0).
+// For now, these are the building blocks. Use them directly if implementing
+// custom session management, or wait for the Session class.
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  // DH ratchet
+  deriveRootKey,
+  // Symmetric ratchet
+  advanceChainKey,
+  advanceChainKeyN,
+  // Message encryption (Signal classic: AES-256-CBC + HMAC-SHA256)
+  expandMessageKey,
+  encryptWithMessageKey,
+  decryptWithMessageKey,
+  // Wire format
+  MessageHeader,
+  isMessageHeader,
+  // Skipped keys (anti-DoS)
+  SkippedMessageKeys,
+  // Types
+  type RootKeyDerivation,
+  type ChainKeyAdvancement,
+  type MessageKeyMaterial,
+  type MessageHeaderPayload,
+  type SkippedKeyId,
+} from './ratchet';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Crypto (for advanced users)

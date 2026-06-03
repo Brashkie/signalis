@@ -30,10 +30,13 @@ export const MAC_SIZE = 32 as const;
 /** AES-256 key size in bytes */
 export const AES_KEY_SIZE = 32 as const;
 
-/** AES-GCM nonce size in bytes */
+/** AES-CBC IV size in bytes (16 = 1 AES block) */
+export const AES_CBC_IV_SIZE = 16 as const;
+
+/** AES-GCM nonce size in bytes (12, NOT 16) */
 export const AES_NONCE_SIZE = 12 as const;
 
-/** AES-GCM authentication tag size in bytes */
+/** AES-GCM auth tag size in bytes */
 export const AES_TAG_SIZE = 16 as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -86,7 +89,7 @@ export const MAX_DEVICE_ID = 0x7fffffff as const;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Signalis library version */
-export const VERSION = '0.4.0' as const;
+export const VERSION = '0.5.0' as const;
 
 /** Signal Protocol version */
 export const PROTOCOL_VERSION = 3 as const;
@@ -221,3 +224,79 @@ export function getX3DHPrefix(): Buffer {
  * Default: 30 days. Implementations can override.
  */
 export const X3DH_INITIAL_MESSAGE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Double Ratchet Constants (NEW v0.5.0)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Size of a RootKey in bytes (32 — same as SHA-256 output).
+ */
+export const ROOT_KEY_SIZE = 32 as const;
+
+/**
+ * Size of a ChainKey in bytes (32).
+ */
+export const CHAIN_KEY_SIZE = 32 as const;
+
+/**
+ * Material derived per message: 32 bytes AES key + 32 bytes HMAC key + 16 bytes IV.
+ *
+ * Total = 80 bytes from HKDF-SHA256(MK_seed).
+ */
+export const MESSAGE_KEY_MATERIAL_SIZE = 80 as const;
+
+/** AES-256 key portion of MessageKey material (first 32 bytes). */
+export const MESSAGE_KEY_AES_OFFSET = 0;
+/** HMAC-SHA256 key portion of MessageKey material (bytes 32-63). */
+export const MESSAGE_KEY_HMAC_OFFSET = 32;
+/** AES-CBC IV portion of MessageKey material (bytes 64-79). */
+export const MESSAGE_KEY_IV_OFFSET = 64;
+
+/**
+ * Truncated MAC size for over-the-wire messages.
+ *
+ * Signal spec truncates the 32-byte HMAC-SHA256 output to 8 bytes for
+ * bandwidth savings. Still cryptographically secure for authentication.
+ */
+export const MAC_TRUNCATE_SIZE = 8 as const;
+
+/**
+ * Maximum number of out-of-order messages whose keys we'll buffer.
+ *
+ * This is an anti-DoS limit: an attacker could send `header.n = 2^32 - 1`
+ * to force us to derive billions of message keys. By capping at 2000 (the
+ * value libsignal uses), we balance practical out-of-order delivery
+ * tolerance against memory/CPU consumption.
+ *
+ * If a legitimate scenario requires higher, set it per-session in Sprint 3
+ * Part 2 (Session class config).
+ */
+export const MAX_SKIPPED_MESSAGE_KEYS = 2000 as const;
+
+/**
+ * HMAC inputs for chain-key advancement (Signal spec § "Symmetric-key ratchet").
+ *
+ *   CK_next   = HMAC-SHA256(CK, 0x02)
+ *   MK_seed   = HMAC-SHA256(CK, 0x01)
+ */
+export const KDF_CK_NEXT_INPUT = 0x02;
+export const KDF_CK_MESSAGE_INPUT = 0x01;
+
+/**
+ * HKDF info string for root-key derivation (DH ratchet step).
+ *
+ *   (RK_new, CK_new) = KDF_RK(RK_old, DH_output)
+ */
+const KDF_RK_INFO_STR = 'Signalis_RatchetRoot_v1';
+export function getRatchetRootInfo(): Buffer {
+  return Buffer.from(KDF_RK_INFO_STR, 'utf-8');
+}
+
+/**
+ * HKDF info string for deriving (AES key, HMAC key, IV) from a MessageKey seed.
+ */
+const MESSAGE_KEY_INFO_STR = 'Signalis_MessageKeys_v1';
+export function getMessageKeyInfo(): Buffer {
+  return Buffer.from(MESSAGE_KEY_INFO_STR, 'utf-8');
+}

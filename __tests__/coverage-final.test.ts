@@ -190,3 +190,39 @@ describe('Final coverage: SignedPreKey.fromVerifiedPayload wrapper', () => {
     ).toThrow();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// InitialMessage.[Symbol.for('nodejs.util.inspect.custom')] (v0.4.0)
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { inspect } from 'node:util';
+import { InitialMessage } from '../src/x3dh';
+
+describe('Final coverage: InitialMessage util.inspect', () => {
+  it('util.inspect returns safe representation', () => {
+    const alice = IdentityKeyPair.generate();
+    const msg = new InitialMessage({
+      identityKey: alice.toPublic(),
+      ephemeralKey: Buffer.alloc(32),
+      signedPreKeyId: 1,
+      oneTimePreKeyId: 42,
+      registrationId: 100,
+      deviceId: 1,
+    });
+    const inspected = inspect(msg);
+    expect(inspected).toMatch(/InitialMessage\(from=100\.1, spk=1, otpk=42\)/);
+  });
+
+  it('util.inspect on message without OPK omits otpk', () => {
+    const alice = IdentityKeyPair.generate();
+    const msg = new InitialMessage({
+      identityKey: alice.toPublic(),
+      ephemeralKey: Buffer.alloc(32),
+      signedPreKeyId: 1,
+      registrationId: 100,
+      deviceId: 1,
+    });
+    const inspected = inspect(msg);
+    expect(inspected).not.toContain('otpk');
+  });
+});
