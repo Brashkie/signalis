@@ -3,7 +3,7 @@
  *
  * Signal Protocol implementation in TypeScript.
  *
- * @version 0.5.0
+ * @version 0.6.0
  * @license Apache-2.0
  */
 
@@ -183,6 +183,21 @@ export {
   type MessageHeaderPayload,
   type SkippedKeyId,
 } from './ratchet';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Session (NEW v0.6.0) — high-level encrypt/decrypt API
+//
+// This is what most users will use directly. It wraps the v0.5.0 ratchet
+// primitives into a clean encrypt(plaintext) / decrypt(packet) interface.
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  Session,
+  isSession,
+  type EncryptedMessage,
+  type SessionInitiateArgs,
+  type SessionReceiveArgs,
+  type SerializedSession,
+} from './session';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Crypto (for advanced users)

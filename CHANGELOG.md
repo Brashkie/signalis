@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] — 2026-06-04
+
+### ✨ Added — Sprint 3 Part 2: Session Class
+
+The high-level encrypt/decrypt API. All the v0.5.0 ratchet primitives are
+now wrapped in a clean `Session` class that handles all state automatically.
+
+**Before (v0.5.0): ~200 lines of manual ratchet state management.**
+**After (v0.6.0): 5 lines.**
+
+```typescript
+// Alice
+const aliceSession = Session.initiateFromX3DH({ sharedSecret, ... });
+const packet = aliceSession.encrypt(Buffer.from('Hola Bob'));
+
+// Bob
+const bobSession = Session.receiveFromX3DH({ sharedSecret, ... });
+const plain = bobSession.decrypt(packet);  // → "Hola Bob"
+```
+
+- **`Session.initiateFromX3DH(args)`** — Alice's first session with Bob
+  - Generates ratchet DH pair, runs initial DH ratchet step
+  - Seeds sending chain ready for first encrypt()
+- **`Session.receiveFromX3DH(args)`** — Bob's first session with Alice
+  - Stores Bob's signed-prekey as initial DH state
+  - Receiving chain seeded on first decrypt()
+  - Sending chain triggered automatically on first encrypt() reply
+- **`session.encrypt(plaintext)`** — Encrypt a message
+  - Auto-handles DH rotation when peer's key changes
+  - Returns `{ header, ciphertext, mac }` as hex strings (JSON-safe)
+- **`session.decrypt(packet)`** — Decrypt + verify a message
+  - Handles out-of-order delivery via skipped-keys cache
+  - Detects DH rotation from peer and ratchets accordingly
+  - Rejects replays (counter going backwards with no cached key)
+  - Anti-DoS cap on skipped key derivation (default 2000)
+- **`session.serialize()` / `Session.deserialize(data)`** — Full session persistence
+  - JSON-safe snapshot including skipped-keys cache
+  - Versioned format for forward compatibility (`version: 1`)
+- **Diagnostics:** `sendingCounterValue()`, `receivingCounterValue()`, `skippedKeysCount()`
+- **Safe output:** `toString()`, `toJSON()`, `util.inspect()` never leak key material
+
+**New types:**
+- `EncryptedMessage` — the over-the-wire packet shape
+- `SessionInitiateArgs`, `SessionReceiveArgs` — factory params
+- `SerializedSession` — JSON snapshot type
+
+**New tests (~80):**
+- Single + multi-message round-trips
+- Bidirectional flow with DH ratchet rotation
+- Out-of-order delivery (skip cache works across rotations)
+- Replay detection
+- Anti-DoS cap enforcement
+- Serialize/deserialize round-trips (including with cached skipped keys)
+- 20-message conversation E2E
+- App-restart-mid-conversation E2E
+
+### 🔄 Changed
+
+- **`VERSION`** bumped to `'0.6.0'`
+- `src/index.ts` exports the new `Session` module
+
+### 🔒 Security
+
+- MAC verified before decryption (no padding oracle)
+- Counter-based replay protection
+- Anti-DoS cap on skipped key derivation (default 2000, configurable)
+- Constant-time MAC compare via `timingSafeEqual`
+- Serialized state contains key material — encrypt at rest
+
+### ✅ Compatibility
+
+**100% backwards compatible with v0.5.0.** Existing `deriveRootKey` /
+`advanceChainKey` / `MessageHeader` / `SkippedMessageKeys` APIs untouched.
+
+### 📋 What's Next
+
+Sprint 4 (v0.7.0): Storage layer interfaces.
+- `IdentityStore` / `PreKeyStore` / `SessionStore` interfaces
+- In-memory + file-based implementations bundled
+
+---
+
 ## [0.5.0] — 2026-06-02
 
 ### ✨ Added — Sprint 3 Part 1: Double Ratchet Primitives

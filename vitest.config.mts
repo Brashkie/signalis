@@ -35,7 +35,7 @@ export default defineConfig({
         'src/index.ts',           // Solo re-exports
         'src/**/index.ts',         // Re-exports de barrel files
         'src/x3dh/types.ts',       // Solo interfaces TS (desaparecen al compilar)
-        'src/ratchet/types.ts',
+        'src/**/types.ts'
       ],
       // Thresholds Sprint 2 (PreKeys completos + X3DH).
       // Subirán a 95% en Sprint 3 cuando llegue Double Ratchet.

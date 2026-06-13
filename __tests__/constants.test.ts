@@ -24,8 +24,8 @@ import {
 
 describe('Constants', () => {
   describe('Versioning', () => {
-    it('VERSION is "0.5.0"', () => {
-      expect(VERSION).toBe('0.5.0');
+    it('VERSION is "0.6.0"', () => {
+      expect(VERSION).toBe('0.6.0');
     });
 
     it('PROTOCOL_VERSION is 3', () => {

@@ -89,7 +89,7 @@ export const MAX_DEVICE_ID = 0x7fffffff as const;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Signalis library version */
-export const VERSION = '0.5.0' as const;
+export const VERSION = '0.6.0' as const;
 
 /** Signal Protocol version */
 export const PROTOCOL_VERSION = 3 as const;

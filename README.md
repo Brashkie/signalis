@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node.js Version](https://img.shields.io/node/v/@brashkie/signalis.svg?style=flat-square&color=339933)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg?style=flat-square)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-458%20passing-success.svg?style=flat-square)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-645%20passing-success.svg?style=flat-square)](#-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg?style=flat-square)](#-testing)
 [![CI](https://img.shields.io/github/actions/workflow/status/Brashkie/signalis/ci.yml?style=flat-square&label=CI)](https://github.com/Brashkie/signalis/actions/workflows/ci.yml)
 [![Powered by Rust](https://img.shields.io/badge/powered_by-Rust-orange.svg?style=flat-square)](https://www.rust-lang.org)
@@ -60,9 +60,76 @@ Built with 🔐 + ❤️ by [Hepein Oficial](https://github.com/Brashkie)
 
 ---
 
-## 🎉 What's New in v0.4.0
+## 🎉 What's New in v0.6.0
 
-**v0.4.0 ships the X3DH handshake — the asynchronous key agreement that makes Signal famous.** Alice and Bob now derive the **same 32-byte shared secret** without ever being online at the same time.
+**v0.6.0 ships the `Session` class — the API the world will actually use.** All the ratchet primitives from v0.5.0 collapse into 5 lines for the end user.
+
+### 🆕 New API
+
+```typescript
+import { X3DH, Session } from '@brashkie/signalis';
+
+// ─── Alice (after X3DH) ─────────────────────────────────────────────
+const { sharedSecret, initialMessage } = X3DH.initiate(alice, bobBundle, {
+  myRegistrationId: 1234,
+});
+
+const aliceSession = Session.initiateFromX3DH({
+  sharedSecret,
+  theirIdentityKey: bobBundle.identityKey,
+  theirSignedPreKeyPublic: bobBundle.signedPreKey.publicKey,
+});
+
+const packet = aliceSession.encrypt(Buffer.from('Hola Bob'));
+
+// ─── Bob ────────────────────────────────────────────────────────────
+const bobResult = X3DH.receive(bob, bobSpk, bobOpk, initialMessage);
+const bobSession = Session.receiveFromX3DH({
+  sharedSecret: bobResult.sharedSecret,
+  myIdentityKey: bob.toPublic(),
+  mySignedPreKeyPrivate: bobSpk.privateKey,
+  mySignedPreKeyPublic: bobSpk.publicKey,
+  theirIdentityKey: alice.toPublic(),
+});
+
+const plain = bobSession.decrypt(packet); // → "Hola Bob"
+
+// ─── Persist + restore across app restarts ──────────────────────────
+const saved = JSON.stringify(aliceSession.serialize());
+await db.save('session:bob', saved);
+
+const restored = Session.deserialize(JSON.parse(saved));
+restored.encrypt(Buffer.from('also after restart')); // works seamlessly
+```
+
+### 🔥 What Session Handles Automatically
+
+- ✅ DH ratchet rotation when peer sends new DH key (forward + backward secrecy)
+- ✅ Symmetric chain advancement per message
+- ✅ Out-of-order delivery via skipped-keys cache
+- ✅ Replay detection (counter must be monotonic or in cache)
+- ✅ Anti-DoS cap on skipped key derivation (default 2000, configurable)
+- ✅ Full serialization for app restarts / multi-device sync
+
+### 🛡️ Security Built-In
+
+- ✅ Encrypt-then-MAC (AES-256-CBC + HMAC-SHA256, Signal classic spec)
+- ✅ MAC verified BEFORE decrypt (no padding oracle)
+- ✅ Constant-time MAC compare (`timingSafeEqual`)
+- ✅ Counter replay protection
+- ✅ Anti-DoS skipped-key cap
+
+### 📊 Quality
+
+```
+✅ ~80 new tests for Session (E2E, validation, serialize, etc.)
+✅ 100% backwards compatible with v0.5.0
+✅ 100% test coverage maintained
+```
+
+---
+
+## 🎉 What's New in v0.4.0
 
 ### 🆕 New API
 
