@@ -3,7 +3,7 @@
  *
  * Signal Protocol implementation in TypeScript.
  *
- * @version 0.6.0
+ * @version 0.7.0
  * @license Apache-2.0
  */
 
@@ -198,6 +198,43 @@ export {
   type SessionReceiveArgs,
   type SerializedSession,
 } from './session';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ProtocolAddress (NEW v0.7.0) — peer identifier for stores
+// ═══════════════════════════════════════════════════════════════════════════
+// MAX_DEVICE_ID is already exported above from `./constants` — not re-exporting.
+export {
+  ProtocolAddress,
+  isProtocolAddress,
+  MAX_USER_ID_LENGTH,
+} from './address';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Storage Layer (NEW v0.7.0) — interfaces + memory/file implementations
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  // Interfaces
+  type IdentityStore,
+  type PreKeyStore,
+  type SignedPreKeyStore,
+  type SessionStore,
+  // Memory impls
+  MemoryIdentityStore,
+  MemoryPreKeyStore,
+  MemorySignedPreKeyStore,
+  MemorySessionStore,
+  // File impls
+  FileIdentityStore,
+  FilePreKeyStore,
+  FileSignedPreKeyStore,
+  FileSessionStore,
+  // Facade + high-level
+  StoreBundle,
+  SessionBuilder,
+  type WireMessage,
+  type InitialMessageWithPayload,
+  type RegularMessage,
+} from './storage';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Crypto (for advanced users)

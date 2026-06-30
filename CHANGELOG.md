@@ -7,6 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] — 2026-06-26
+
+### ✨ Added — Sprint 4: Storage Layer
+
+The piece that separates a "Signal Protocol library" from a "WhatsApp-style
+end-to-end-encrypted messaging app". v0.6.0 gave you `Session` and you had
+to BYO persistence. v0.7.0 ships the canonical 4-store contracts + two
+bundled implementations + a `SessionBuilder` that orchestrates everything.
+
+**Before (v0.6.0): persistence is your problem.**
+**After (v0.7.0): 5 lines and you're done.**
+
+```typescript
+import { StoreBundle, SessionBuilder, ProtocolAddress } from '@brashkie/signalis';
+
+const stores = StoreBundle.file('~/.myapp/signalis');
+const builder = new SessionBuilder(stores);
+
+// First time: requires bundle (X3DH bootstrap)
+const msg = await builder.encrypt(
+  new ProtocolAddress('bob', 1),
+  Buffer.from('Hola Bob'),
+  bobBundle,
+);
+
+// Subsequent times: no bundle needed
+const msg2 = await builder.encrypt(bobAddr, Buffer.from('me again'));
+```
+
+#### 🆕 New types
+- **`ProtocolAddress`** — `(userId, deviceId)` pair, multi-device support
+  - Filesystem-safe userId (rejects path separators, control chars)
+  - Stable string form: `"alice@example.com.1"`
+  - `equals()`, `toJSON()`, `inspect()`, type guard `isProtocolAddress()`
+
+#### 🆕 4 store interfaces
+- **`IdentityStore`** — own identity, registration id, trusted-peer fingerprints (TOFU)
+- **`PreKeyStore`** — one-time prekeys (Signal one-shot semantics)
+- **`SignedPreKeyStore`** — medium-term signed prekeys + active pointer
+- **`SessionStore`** — per-peer Double Ratchet sessions
+
+#### 🆕 2 bundled implementations
+- **`Memory*Store`** — in-process `Map`s. For tests + ephemeral apps.
+- **`File*Store`** — JSON-on-disk with atomic writes (tmp + fsync + rename).
+  - Safe against partial writes from crashes
+  - `chmod 600` on identity files (owner-only)
+  - File layout: `<rootDir>/{identity.json, registration-id.json, trusted/, prekeys/, signed-prekeys/, sessions/}`
+
+#### 🆕 `StoreBundle` facade
+- `StoreBundle.memory()` — all-memory bundle in one call
+- `StoreBundle.file('/path')` — all-file bundle in one call
+- Custom mixes: `new StoreBundle({ identity: ..., preKeys: ..., ... })`
+
+#### 🆕 `SessionBuilder` high-level API
+- `builder.encrypt(recipient, plaintext, bundle?)` — auto-handles X3DH bootstrap
+- `builder.decrypt(sender, message)` — auto-handles X3DH receive + session save
+- `builder.resetSession(peer)` — "reset secure session" UX flow
+- Automatic TOFU + identity-change detection
+- Automatic one-time-prekey consumption after first decrypt
+- Returns/accepts discriminated union `WireMessage = PreKey | Whisper`
+
+#### 🆕 New tests (~90)
+- ProtocolAddress validation, parse, equality
+- Memory store interface contracts (4 stores)
+- File store atomic writes + persistence + concurrent writes
+- StoreBundle mix-and-match
+- SessionBuilder full flow (validation, X3DH bootstrap, TOFU, replay rejection)
+- E2E: full conversation + app restart with FileStore
+
+### 🔄 Changed
+- `VERSION` bumped to `'0.7.0'`
+- `src/index.ts` exports the new storage module
+- Zero deps added — `node:fs` + `node:crypto` + `node:path` only
+
+### 🔒 Security
+- Atomic writes prevent file corruption from crashes
+- File mode 0o600 on identity files (owner read/write only)
+- `userId` validation rejects path-traversal characters
+- TOFU pattern with explicit `isTrustedIdentity` check (apps can warn users)
+- One-time prekeys consumed and DELETED after first use (no replay)
+- Replay detection: re-using a prekey message throws
+
+### ✅ Compatibility
+**100% backwards compatible with v0.6.0.** All v0.6.0 APIs (`Session.initiateFromX3DH`,
+`session.encrypt`, etc.) work unchanged. Storage is opt-in.
+
+### 📋 What's Next
+
+Sprint 5 (v0.8.0): Sender Keys for group messaging.
+- `SenderKeyDistributionMessage`
+- `GroupSession` class
+- Group encrypt/decrypt with shared chain key
+
+---
+
 ## [0.6.0] — 2026-06-04
 
 ### ✨ Added — Sprint 3 Part 2: Session Class

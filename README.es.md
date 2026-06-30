@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
 [![Node.js Version](https://img.shields.io/node/v/@brashkie/signalis.svg?style=flat-square&color=339933)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg?style=flat-square)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-395%20passing-success.svg?style=flat-square)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-745%20passing-success.svg?style=flat-square)](#-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg?style=flat-square)](#-testing)
 [![CI](https://img.shields.io/github/actions/workflow/status/Brashkie/signalis/ci.yml?style=flat-square&label=CI)](https://github.com/Brashkie/signalis/actions/workflows/ci.yml)
 [![Powered by Rust](https://img.shields.io/badge/powered_by-Rust-orange.svg?style=flat-square)](https://www.rust-lang.org)
@@ -57,6 +57,71 @@ Hecho con 🔐 + ❤️ por [Hepein Oficial](https://github.com/Brashkie)
 
 > **Parte del ecosistema [Hepein](https://github.com/Brashkie).**
 > Base para `@brashkie/waproto` (Protocolo WhatsApp) y eventualmente una alternativa a Baileys construida desde cero.
+
+---
+
+## 🎉 Novedades en v0.7.0
+
+**v0.7.0 entrega la Capa de Storage — la pieza que separa una "librería del Protocolo Signal" de una "app de mensajería real".** Antes, los devs tenían que armar persistencia a mano. Ahora hay un sistema canónico de 4 stores + facade + API de alto nivel.
+
+### 🆕 Nueva API
+
+```typescript
+import { StoreBundle, SessionBuilder, ProtocolAddress } from '@brashkie/signalis';
+
+// ─── Setup de storage (1 línea) ────────────────────────────────────
+const stores = StoreBundle.file('~/.miapp/signalis');
+// o: StoreBundle.memory() para tests
+
+const builder = new SessionBuilder(stores);
+
+// ─── Enviar mensaje (X3DH automático en el primer envío) ───────────
+const msg = await builder.encrypt(
+  new ProtocolAddress('bob', 1),
+  Buffer.from('Hola Bob'),
+  bobBundle,   // bundle solo en primer envío
+);
+
+// ─── Recibir mensaje ───────────────────────────────────────────────
+const plano = await builder.decrypt(
+  new ProtocolAddress('alice', 1),
+  msg,
+);
+
+// ─── ¿App reinició? Solo recreás el bundle desde disco ─────────────
+const stores2 = StoreBundle.file('~/.miapp/signalis');
+const builder2 = new SessionBuilder(stores2);
+// Continúa la conversación donde la dejaste ✨
+```
+
+### 🔥 Lo Que StoreBundle + SessionBuilder Manejan Automáticamente
+
+- ✅ Carga/guardado de sessions a través de los 4 stores canónicos de Signal
+- ✅ Bootstrap X3DH en el primer mensaje a un peer nuevo
+- ✅ TOFU + detección de cambio de identidad ("el código de seguridad cambió")
+- ✅ Consumo del one-time prekey tras el primer decrypt (protección contra replay)
+- ✅ Tracking multi-device vía `ProtocolAddress(userId, deviceId)`
+- ✅ Escrituras atómicas a disco (no se corrompe en un crash)
+
+### 🏗️ 4 Interfaces Canónicas de Storage
+
+Enchufá tu base de datos preferida (SQLite, IndexedDB, Postgres, Redis):
+
+```typescript
+interface IdentityStore { ... }      // identidad propia + cache TOFU
+interface PreKeyStore { ... }        // one-time prekeys
+interface SignedPreKeyStore { ... }  // signed prekeys de mediano plazo
+interface SessionStore { ... }       // Double Ratchet por peer
+```
+
+### 📊 Calidad
+
+```
+✅ ~90 tests nuevos para la Storage Layer
+✅ 100% retrocompatible con v0.6.0
+✅ Cobertura de tests al 100% mantenida
+✅ Cero deps nuevas (solo node:fs + node:crypto + node:path)
+```
 
 ---
 
